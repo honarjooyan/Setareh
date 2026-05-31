@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>بازی شکارنده ستاره</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #1a1a2e;
+            font-family: sans-serif;
+            touch-action: none; /* جلوگیری از اسکرول هنگام بازی در موبایل */
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #16213e, #0f3460);
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            pointer-events: none;
+        }
+        #msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #e94560;
+            font-size: 30px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">امتیاز: <span id="score">0</span></div>
+    <div id="msg">بازی تمام شد!<br><small>برای شروع دوباره صفحه را لمس کن</small></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const msgEl = document.getElementById('msg');
+
+        // تنظیم اندازه کانواس به اندازه صفحه نمایش
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let gameActive = true;
+
+        // شیء بازیکن
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 70,
+            w: 50,
+            h: 30,
+            color: '#e94560'
+        };
+
+        // شیء ستاره
+        const star = {
+            x: Math.random() * (canvas.width - 30),
+            y: 0,
+            size: 20,
+            speed: 3
+        };
+
+        // شیء دشمن (مواد مزاحم)
+        const enemy = {
+            x: Math.random() * (canvas.width - 30),
+            y: -50,
+            size: 25,
+            speed: 4
+        };
+
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = player.color;
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawStar() {
+            ctx.fillStyle = '#f9d71c';
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawEnemy() {
+            ctx.fillStyle = '#00d2ff';
+            ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size);
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            // حرکت ستاره به پایین
+            star.y += star.speed;
+            if (star.y > canvas.height) {
+                star.y = 0;
+                star.x = Math.random() * (canvas.width - 30);
+            }
+
+            // حرکت دشمن به پایین
+            enemy.y += enemy.speed;
+            if (enemy.y > canvas.height) {
+                enemy.y = -50;
+                enemy.x = Math.random() * (canvas.width - 30);
+            }
+
+            // برخورد با ستاره (امتیاز گرفتن)
+            if (star.x < player.x + player.w && star.x + star.size > player.x &&
+                star.y < player.y + player.h && star.y + star.size > player.y) {
+                score++;
+                scoreEl.innerText = score;
+                star.y = 0;
+                star.x = Math.random() * (canvas.width - 30);
+                star.speed += 0.2; // سخت‌تر شدن بازی
+            }
+
+            // برخورد با دشمن (باختن)
+            if (enemy.x < player.x + player.w && enemy.x + enemy.size > player.x &&
+                enemy.y < player.y + player.h && enemy.y + enemy.size > player.y) {
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            msgEl.style.display = 'block';
+        }
+
+        function resetGame() {
+            score = 0;
+            scoreEl.innerText = score;
+            star.y = 0;
+            star.speed = 3;
+            enemy.y = -50;
+            enemy.speed = 4;
+            gameActive = true;
+            msgEl.style.display = 'none';
+            loop();
+        }
+
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawPlayer();
+            drawStar();
+            drawEnemy();
+            update();
+
+            if (gameActive) {
+                requestAnimationFrame(loop);
+            }
+        }
+
+        // کنترل با لمس (مخصوص موبایل)
+        canvas.addEventListener('touchmove', (e) => {
+            let touch = e.touches[0];
+            player.x = touch.clientX - player.w / 2;
+            // محدود کردن حرکت در عرض صفحه
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
+        });
+
+        // کنترل با ماوس (برای تست در کامپیوتر)
+        canvas.addEventListener('mousemove', (e) => {
+            player.x = e.clientX - player.w / 2;
+        });
+
+        // شروع دوباره با لمس صفحه
+        canvas.addEventListener('click', () => {
+            if (!gameActive) resetGame();
+        });
+
+        loop();
+    </script>
+</body>
+</html>
